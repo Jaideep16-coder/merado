@@ -1,0 +1,1922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEDORA — AI Health Copilot</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Plus Jakarta Sans', 'sans-serif']
+      }
+    }
+  }
+}
+</script>
+
+<style>
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  background:#f8fafc;
+  color:#0f172a;
+}
+::-webkit-scrollbar{width:7px}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
+
+.modal-bg{
+  background:rgba(15,23,42,.65);
+  backdrop-filter:blur(6px);
+}
+
+.fade{
+  animation:fade .35s ease;
+}
+
+@keyframes fade{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.card{
+  background:white;
+  border:1px solid #e2e8f0;
+  border-radius:24px;
+  box-shadow:0 10px 30px rgba(15,23,42,.05);
+}
+
+.gradient-text{
+  background:linear-gradient(90deg,#059669,#0d9488);
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+.hero{
+  background:linear-gradient(135deg,#0f172a,#134e4a);
+}
+
+.btn{
+  transition:.2s;
+}
+.btn:hover{
+  transform:translateY(-1px);
+}
+
+.toast{
+  animation:toast .3s ease;
+}
+
+@keyframes toast{
+  from{opacity:0;transform:translateY(15px)}
+  to{opacity:1;transform:translateY(0)}
+}
+</style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<header class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200">
+<div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+
+  <button onclick="goHome()" class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow">
+      <i class="fa-solid fa-heart-pulse"></i>
+    </div>
+
+    <div class="text-left">
+      <div class="font-extrabold text-lg">
+        MEDORA
+        <span class="text-[9px] bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">
+          AI COPILOT
+        </span>
+      </div>
+      <div class="hidden sm:block text-[10px] text-slate-500">
+        Every medical record. One intelligent health story.
+      </div>
+    </div>
+  </button>
+
+  <div class="flex items-center gap-2">
+
+    <button onclick="runDemo()"
+      class="hidden sm:flex btn bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-bold">
+      <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>
+      Run Demo
+    </button>
+
+    <button onclick="setLanguage('en')"
+      id="enBtn"
+      class="px-3 py-2 rounded-lg text-xs font-bold bg-slate-900 text-white">
+      EN
+    </button>
+
+    <button onclick="setLanguage('hi')"
+      id="hiBtn"
+      class="px-3 py-2 rounded-lg text-xs font-bold bg-slate-100">
+      हिन्दी
+    </button>
+
+    <button id="logoutBtn"
+      onclick="logout()"
+      class="hidden text-slate-500 hover:text-red-600 px-2">
+      <i class="fa-solid fa-right-from-bracket"></i>
+    </button>
+
+  </div>
+</div>
+</header>
+
+
+<!-- MAIN -->
+<main id="app"></main>
+
+
+<!-- FOOTER -->
+<footer class="bg-white border-t border-slate-200 mt-16">
+<div class="max-w-7xl mx-auto px-4 py-8 flex flex-col md:flex-row justify-between gap-5">
+
+  <div>
+    <h3 class="font-bold">MEDORA AI Healthcare Platform</h3>
+    <p class="text-xs text-slate-500 mt-1">
+      Every medical record. One intelligent health story.
+    </p>
+  </div>
+
+  <div class="text-xs text-slate-500 max-w-xl">
+    <b>Disclaimer:</b>
+    MEDORA is an informational prototype and does not provide medical diagnosis
+    or replace professional healthcare.
+  </div>
+
+</div>
+</footer>
+
+
+<!-- TOAST -->
+<div id="toastBox"
+class="fixed bottom-5 right-5 z-[100] space-y-2"></div>
+
+
+<script>
+
+/* =========================
+   APP STATE
+========================= */
+
+let role = localStorage.getItem("medora_role") || null;
+let language = localStorage.getItem("medora_lang") || "en";
+let currentPage = "dashboard";
+
+
+/* =========================
+   DEMO DATA
+========================= */
+
+const patient = {
+  name:"Alex Sharma",
+  age:22,
+  gender:"Male",
+  blood:"B+",
+  abha:"14-8920-5910-4821",
+
+  conditions:[
+    "Fever / Viral Syndrome",
+    "Mild Dehydration"
+  ],
+
+  allergies:[
+    "Penicillin (Mild Rash)"
+  ],
+
+  medicines:[
+    {
+      name:"Paracetamol",
+      dose:"500 mg",
+      frequency:"Twice daily",
+      status:"Active"
+    },
+    {
+      name:"Multivitamin",
+      dose:"1 Tablet",
+      frequency:"Once daily",
+      status:"Active"
+    }
+  ],
+
+  tests:[
+    {
+      name:"HbA1c",
+      value:"7.2%",
+      range:"4.0 – 5.6%",
+      status:"Above reference range"
+    },
+    {
+      name:"Body Temperature",
+      value:"101.4°F",
+      range:"97.0 – 99.0°F",
+      status:"Elevated"
+    }
+  ]
+};
+
+
+/* =========================
+   LANGUAGE
+========================= */
+
+function setLanguage(lang){
+
+  language=lang;
+
+  localStorage.setItem("medora_lang",lang);
+
+  document.getElementById("enBtn").className =
+    lang==="en"
+    ?"px-3 py-2 rounded-lg text-xs font-bold bg-slate-900 text-white"
+    :"px-3 py-2 rounded-lg text-xs font-bold bg-slate-100";
+
+  document.getElementById("hiBtn").className =
+    lang==="hi"
+    ?"px-3 py-2 rounded-lg text-xs font-bold bg-slate-900 text-white"
+    :"px-3 py-2 rounded-lg text-xs font-bold bg-slate-100";
+
+  render();
+
+  toast(
+    lang==="hi"
+    ?"भाषा हिंदी में बदल दी गई"
+    :"Language switched to English",
+    "success"
+  );
+}
+
+
+/* =========================
+   RENDER
+========================= */
+
+function render(){
+
+  const app=document.getElementById("app");
+  const logoutButton=document.getElementById("logoutBtn");
+
+  if(role){
+    logoutButton.classList.remove("hidden");
+  }else{
+    logoutButton.classList.add("hidden");
+  }
+
+  if(!role){
+    app.innerHTML=landingPage();
+    return;
+  }
+
+  if(role==="patient"){
+    app.innerHTML=patientPortal();
+    return;
+  }
+
+  if(role==="doctor"){
+    app.innerHTML=doctorPortal();
+  }
+}
+
+
+/* =========================
+   LANDING PAGE
+========================= */
+
+function landingPage(){
+
+return `
+<div class="fade">
+
+<section class="max-w-7xl mx-auto px-4 py-16">
+
+<div class="text-center max-w-4xl mx-auto">
+
+<div class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-full text-xs font-bold mb-5">
+<i class="fa-solid fa-sparkles"></i>
+AI-POWERED HEALTHCARE INTELLIGENCE
+</div>
+
+<h1 class="text-5xl md:text-6xl font-extrabold tracking-tight mb-5">
+Your Health.
+<span class="gradient-text">One Intelligent Story.</span>
+</h1>
+
+<p class="text-lg text-slate-600 leading-relaxed">
+MEDORA transforms prescriptions, laboratory reports,
+diagnostic records and healthcare information into one
+simple and understandable health story.
+</p>
+
+</div>
+
+
+<div class="grid md:grid-cols-2 gap-7 max-w-5xl mx-auto mt-14">
+
+
+<!-- DOCTOR -->
+<div class="card p-8 hover:shadow-xl transition">
+
+<div class="w-16 h-16 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-2xl mb-6">
+<i class="fa-solid fa-user-doctor"></i>
+</div>
+
+<h2 class="text-2xl font-extrabold mb-2">
+Doctor Portal
+</h2>
+
+<p class="text-sm text-slate-600 mb-7">
+Review patient-shared health information,
+understand medical history and prepare for consultations.
+</p>
+
+<button onclick="doctorLogin()"
+class="btn w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 rounded-xl font-bold">
+<i class="fa-solid fa-right-to-bracket mr-2"></i>
+Doctor Login
+</button>
+
+</div>
+
+
+<!-- PATIENT -->
+<div class="card p-8 border-emerald-200 hover:shadow-xl transition">
+
+<div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl mb-6">
+<i class="fa-solid fa-user"></i>
+</div>
+
+<h2 class="text-2xl font-extrabold mb-2">
+Patient Portal
+</h2>
+
+<p class="text-sm text-slate-600 mb-7">
+Understand your medical records, track changes,
+manage health information and prepare for doctor conversations.
+</p>
+
+<button onclick="patientLogin()"
+class="btn w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-xl font-bold">
+<i class="fa-solid fa-right-to-bracket mr-2"></i>
+Patient Login
+</button>
+
+</div>
+
+</div>
+
+
+<button onclick="runDemo()"
+class="mt-10 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-7 py-4 rounded-xl font-bold">
+<i class="fa-solid fa-wand-magic-sparkles text-emerald-600 mr-2"></i>
+Run Complete Hackathon Demo
+</button>
+
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto mt-14">
+
+${feature("fa-file-medical","Medical Records")}
+${feature("fa-brain","AI Insights")}
+${feature("fa-timeline","Health Timeline")}
+${feature("fa-user-doctor","Doctor Connect")}
+
+</div>
+
+</section>
+
+<section class="hero text-white py-16">
+
+<div class="max-w-6xl mx-auto px-4 text-center">
+
+<h2 class="text-3xl font-extrabold mb-3">
+Built for a smarter healthcare journey
+</h2>
+
+<p class="text-slate-300 max-w-2xl mx-auto">
+From fragmented medical documents to an organized health story,
+MEDORA helps people understand what changed and what to discuss
+with healthcare professionals.
+</p>
+
+</div>
+
+</section>
+
+</div>
+`;
+}
+
+
+function feature(icon,text){
+
+return `
+<div class="card p-5 text-center">
+<div class="text-emerald-600 text-xl mb-2">
+<i class="fa-solid ${icon}"></i>
+</div>
+<div class="text-xs font-bold">${text}</div>
+</div>
+`;
+}
+
+
+/* =========================
+   LOGIN
+========================= */
+
+function patientLogin(){
+
+showLogin("patient");
+}
+
+function doctorLogin(){
+
+showLogin("doctor");
+}
+
+
+function showLogin(type){
+
+const doctor=type==="doctor";
+
+const modal=document.createElement("div");
+
+modal.id="loginModal";
+
+modal.className=
+"fixed inset-0 z-[90] modal-bg flex items-center justify-center p-4";
+
+
+modal.innerHTML=`
+
+<div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl fade">
+
+<button onclick="closeLogin()"
+class="float-right text-slate-400 hover:text-slate-800">
+<i class="fa-solid fa-xmark text-xl"></i>
+</button>
+
+<div class="text-center mb-7">
+
+<div class="w-14 h-14 mx-auto rounded-2xl
+${doctor?"bg-teal-50 text-teal-600":"bg-emerald-50 text-emerald-600"}
+flex items-center justify-center text-xl">
+
+<i class="fa-solid ${doctor?"fa-user-doctor":"fa-user"}"></i>
+
+</div>
+
+<h2 class="text-2xl font-extrabold mt-4">
+${doctor?"Doctor Portal Login":"Patient Login"}
+</h2>
+
+<p class="text-xs text-slate-500 mt-1">
+Demo authentication for hackathon prototype
+</p>
+
+</div>
+
+
+<form onsubmit="event.preventDefault();performLogin('${type}')"
+class="space-y-4">
+
+<div>
+
+<label class="text-xs font-bold uppercase">
+${doctor?"Doctor ID":"Email / Patient ID"}
+</label>
+
+<input
+type="email"
+required
+value="${doctor?"doctor@medora.demo":"patient@medora.demo"}"
+class="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500">
+
+</div>
+
+
+<div>
+
+<label class="text-xs font-bold uppercase">
+Password
+</label>
+
+<input
+type="password"
+required
+value="${doctor?"doctor123":"medora123"}"
+class="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500">
+
+</div>
+
+
+<div class="bg-slate-50 border rounded-xl p-3 text-xs">
+
+<strong>Demo credentials</strong><br>
+
+${doctor
+?"doctor@medora.demo / doctor123"
+:"patient@medora.demo / medora123"}
+
+</div>
+
+
+<button
+class="w-full ${
+doctor
+?"bg-slate-900 hover:bg-slate-800"
+:"bg-emerald-600 hover:bg-emerald-700"
+} text-white py-3.5 rounded-xl font-bold">
+
+Login as ${doctor?"Doctor":"Patient"}
+
+</button>
+
+</form>
+
+</div>
+`;
+
+document.body.appendChild(modal);
+}
+
+
+function closeLogin(){
+
+const modal=document.getElementById("loginModal");
+
+if(modal) modal.remove();
+}
+
+
+function performLogin(type){
+
+role=type;
+
+localStorage.setItem("medora_role",role);
+
+closeLogin();
+
+currentPage="dashboard";
+
+render();
+
+toast(
+`Logged in successfully as ${type.toUpperCase()}`,
+"success"
+);
+}
+
+
+/* =========================
+   PATIENT PORTAL
+========================= */
+
+function patientPortal(){
+
+return `
+
+<div class="fade">
+
+<!-- PATIENT NAV -->
+
+<div class="bg-white border-b border-slate-200">
+
+<div class="max-w-7xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto">
+
+${navButton("dashboard","fa-chart-pie","Dashboard")}
+
+${navButton("records","fa-file-medical","Medical Records")}
+
+${navButton("story","fa-timeline","Health Story")}
+
+${navButton("copilot","fa-robot","AI Copilot")}
+
+${navButton("consultation","fa-user-doctor","Consultation")}
+
+${navButton("profile","fa-user","Health Profile")}
+
+${navButton("abdm","fa-shield-halved","ABDM")}
+
+</div>
+
+</div>
+
+
+<div class="max-w-7xl mx-auto px-4 py-8">
+
+${patientPage()}
+
+</div>
+
+</div>
+`;
+}
+
+
+function navButton(page,icon,text){
+
+return `
+<button
+onclick="navigate('${page}')"
+class="whitespace-nowrap px-4 py-2.5 rounded-xl text-sm font-bold
+${currentPage===page
+?"bg-emerald-600 text-white"
+:"text-slate-600 hover:bg-slate-100"}">
+
+<i class="fa-solid ${icon} mr-2"></i>
+${text}
+
+</button>
+`;
+}
+
+
+function patientPage(){
+
+switch(currentPage){
+
+case "records":
+return recordsPage();
+
+case "story":
+return storyPage();
+
+case "copilot":
+return copilotPage();
+
+case "consultation":
+return consultationPage();
+
+case "profile":
+return profilePage();
+
+case "abdm":
+return abdmPage();
+
+default:
+return dashboardPage();
+
+}
+
+}
+
+
+/* =========================
+   DASHBOARD
+========================= */
+
+function dashboardPage(){
+
+return `
+
+<div class="space-y-7">
+
+<div class="hero rounded-3xl p-8 md:p-10 text-white">
+
+<div class="max-w-3xl">
+
+<span class="inline-block bg-emerald-500/20 border border-emerald-400/30
+text-emerald-300 px-3 py-1 rounded-full text-xs font-bold mb-4">
+
+<i class="fa-solid fa-bolt mr-1"></i>
+AI RECORD INTELLIGENCE ACTIVE
+
+</span>
+
+<h1 class="text-3xl md:text-4xl font-extrabold mb-3">
+Hello, ${patient.name}
+</h1>
+
+<p class="text-slate-300 mb-7">
+Your medical information is organized into one intelligent health story.
+</p>
+
+<button onclick="uploadRecord()"
+class="bg-emerald-600 hover:bg-emerald-500 px-6 py-3.5 rounded-xl font-bold">
+
+<i class="fa-solid fa-cloud-arrow-up mr-2"></i>
+Upload Medical Record
+
+</button>
+
+</div>
+
+</div>
+
+
+<!-- STATS -->
+
+<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+${stat("12","Medical Records","fa-file-medical","emerald")}
+
+${stat("4","Medicines","fa-pills","teal")}
+
+${stat("3","Observations","fa-flask","amber")}
+
+${stat("1","Consultation","fa-user-doctor","rose")}
+
+</div>
+
+
+<!-- AI SUMMARY -->
+
+<div class="card p-7">
+
+<div class="flex items-center gap-4 mb-5">
+
+<div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl">
+<i class="fa-solid fa-brain"></i>
+</div>
+
+<div>
+<h2 class="text-xl font-extrabold">
+AI Health Summary
+</h2>
+
+<p class="text-xs text-slate-500">
+Generated from recent medical information
+</p>
+
+</div>
+
+</div>
+
+
+<div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-sm leading-relaxed">
+
+<p class="font-bold text-emerald-800 mb-2">
+<i class="fa-solid fa-circle-info mr-2"></i>
+Plain-Language Overview
+</p>
+
+<p>
+Your demo health record contains fever-related information and
+an HbA1c value of <strong>7.2%</strong>, which is above the
+reference range displayed in the demo report.
+Discuss relevant findings with a qualified healthcare professional.
+</p>
+
+</div>
+
+</div>
+
+
+<!-- ALERT -->
+
+<div class="card p-7">
+
+<h2 class="font-extrabold text-lg mb-5">
+Health Highlights
+</h2>
+
+<div class="grid md:grid-cols-3 gap-4">
+
+<div class="bg-rose-50 border border-rose-200 rounded-2xl p-5">
+<i class="fa-solid fa-temperature-high text-rose-600 text-xl"></i>
+<h3 class="font-bold mt-3">Fever Information</h3>
+<p class="text-xs text-slate-600 mt-1">
+Body temperature recorded at 101.4°F in demo data.
+</p>
+</div>
+
+<div class="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+<i class="fa-solid fa-chart-line text-amber-600 text-xl"></i>
+<h3 class="font-bold mt-3">Lab Observation</h3>
+<p class="text-xs text-slate-600 mt-1">
+HbA1c: 7.2% in the demo report.
+</p>
+</div>
+
+<div class="bg-teal-50 border border-teal-200 rounded-2xl p-5">
+<i class="fa-solid fa-user-doctor text-teal-600 text-xl"></i>
+<h3 class="font-bold mt-3">Doctor Follow-up</h3>
+<p class="text-xs text-slate-600 mt-1">
+Prepare questions and discuss records with a healthcare professional.
+</p>
+</div>
+
+</div>
+
+</div>
+
+</div>
+`;
+}
+
+
+function stat(number,title,icon){
+
+return `
+<div class="card p-6">
+
+<div class="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-emerald-600 mb-4">
+<i class="fa-solid ${icon}"></i>
+</div>
+
+<div class="text-2xl font-extrabold">
+${number}
+</div>
+
+<div class="text-sm text-slate-500">
+${title}
+</div>
+
+</div>
+`;
+}
+
+
+/* =========================
+   RECORDS
+========================= */
+
+function recordsPage(){
+
+return `
+
+<div class="space-y-6">
+
+<div class="card p-7">
+
+<h1 class="text-3xl font-extrabold">
+Medical Records
+</h1>
+
+<p class="text-sm text-slate-500 mt-1">
+All uploaded healthcare documents in one place.
+</p>
+
+<button onclick="uploadRecord()"
+class="mt-5 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-bold text-sm">
+
+<i class="fa-solid fa-plus mr-2"></i>
+Upload New Record
+
+</button>
+
+</div>
+
+
+<div class="grid md:grid-cols-2 gap-5">
+
+${recordCard(
+"REC-001",
+"Prescription",
+"12 Sept 2026",
+"Dr. Meera Kapoor Prescription",
+"Paracetamol 500 mg prescribed for fever."
+)}
+
+${recordCard(
+"REC-002",
+"Lab Report",
+"15 Sept 2026",
+"Comprehensive Metabolic & HbA1c Panel",
+"HbA1c recorded at 7.2%."
+)}
+
+${recordCard(
+"REC-003",
+"Diagnostic Report",
+"20 Sept 2026",
+"Complete Blood Count",
+"Document processed using simulated OCR."
+)}
+
+${recordCard(
+"REC-004",
+"Consultation",
+"Today",
+"AI Health Summary",
+"Health information organized for discussion."
+)}
+
+</div>
+
+</div>
+`;
+}
+
+
+function recordCard(id,type,date,name,summary){
+
+return `
+<div class="card p-6">
+
+<div class="flex justify-between gap-4">
+
+<div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+<i class="fa-solid fa-file-medical"></i>
+</div>
+
+<span class="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full h-fit">
+PROCESSED
+</span>
+
+</div>
+
+<div class="mt-5">
+
+<p class="text-xs text-slate-400 font-bold">
+${id} • ${date}
+</p>
+
+<h3 class="font-extrabold mt-1">
+${name}
+</h3>
+
+<p class="text-sm text-slate-600 mt-2">
+${summary}
+</p>
+
+<span class="inline-block mt-4 text-xs font-bold bg-slate-100 px-3 py-1.5 rounded-lg">
+${type}
+</span>
+
+</div>
+
+</div>
+`;
+}
+
+
+/* =========================
+   HEALTH STORY
+========================= */
+
+function storyPage(){
+
+const timeline=[
+
+["12 Sept 2026","Prescription","Prescription Recorded",
+"Paracetamol 500 mg prescribed for acute fever."],
+
+["15 Sept 2026","Lab Report","Blood Test — HbA1c",
+"HbA1c recorded at 7.2%."],
+
+["20 Sept 2026","Diagnostic","Diagnostic Report Added",
+"Complete Blood Count uploaded and analyzed using simulated OCR."],
+
+["Today","AI Insight","AI Health Summary Updated",
+"Changes summarized for discussion with a healthcare professional."]
+
+];
+
+return `
+
+<div class="space-y-6">
+
+<div class="card p-7">
+
+<h1 class="text-3xl font-extrabold">
+My Health Story
+</h1>
+
+<p class="text-sm text-slate-500 mt-1">
+Chronological view of your healthcare journey.
+</p>
+
+</div>
+
+
+<div class="card p-8">
+
+<div class="relative border-l-2 border-emerald-100 ml-3 space-y-10">
+
+${timeline.map(item=>`
+
+<div class="relative pl-8">
+
+<div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-emerald-600 border-4 border-white"></div>
+
+<span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">
+${item[1]}
+</span>
+
+<span class="text-xs text-slate-400 ml-2">
+${item[0]}
+</span>
+
+<h3 class="font-extrabold mt-2">
+${item[2]}
+</h3>
+
+<p class="text-sm text-slate-600 mt-1">
+${item[3]}
+</p>
+
+</div>
+
+`).join("")}
+
+</div>
+
+</div>
+
+</div>
+`;
+}
+
+
+/* =========================
+   AI COPILOT
+========================= */
+
+function copilotPage(){
+
+return `
+
+<div class="max-w-4xl mx-auto">
+
+<div class="card overflow-hidden">
+
+<div class="hero text-white p-8">
+
+<div class="flex items-center gap-4">
+
+<div class="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-2xl">
+<i class="fa-solid fa-robot"></i>
+</div>
+
+<div>
+<h1 class="text-2xl font-extrabold">
+MEDORA AI Health Copilot
+</h1>
+
+<p class="text-sm text-slate-300">
+Demo assistant grounded in your health records
+</p>
+</div>
+
+</div>
+
+</div>
+
+
+<div class="p-7 space-y-5">
+
+<div class="bg-slate-100 rounded-2xl p-5 text-sm">
+<b>MEDORA:</b>
+Hello ${patient.name}! I can help explain the information
+shown in your demo health records.
+</div>
+
+
+<div class="grid sm:grid-cols-2 gap-3">
+
+<button onclick="askAI('What does my HbA1c report show?')"
+class="text-left border rounded-xl p-4 hover:bg-emerald-50 text-sm font-semibold">
+What does my HbA1c report show?
+</button>
+
+<button onclick="askAI('What changed in my records?')"
+class="text-left border rounded-xl p-4 hover:bg-emerald-50 text-sm font-semibold">
+What changed in my records?
+</button>
+
+<button onclick="askAI('What should I discuss with my doctor?')"
+class="text-left border rounded-xl p-4 hover:bg-emerald-50 text-sm font-semibold">
+What should I discuss with my doctor?
+</button>
+
+<button onclick="askAI('Show my medicines')"
+class="text-left border rounded-xl p-4 hover:bg-emerald-50 text-sm font-semibold">
+Show my medicines
+</button>
+
+</div>
+
+
+<div class="flex gap-3">
+
+<input id="aiInput"
+placeholder="Ask about your records..."
+class="flex-1 border bg-slate-50 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500">
+
+<button onclick="sendAI()"
+class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 rounded-xl font-bold">
+Send
+</button>
+
+</div>
+
+
+<div id="aiAnswer"></div>
+
+</div>
+
+</div>
+
+</div>
+`;
+}
+
+
+function sendAI(){
+
+const input=document.getElementById("aiInput");
+
+if(!input.value.trim()) return;
+
+askAI(input.value);
+
+input.value="";
+}
+
+
+function askAI(question){
+
+let answer="I can help explain the information available in the demo records.";
+
+const q=question.toLowerCase();
+
+if(q.includes("hba1c")){
+
+answer=
+"The demo report shows HbA1c at 7.2%, while the displayed reference range is 4.0–5.6%. This is information to discuss with a qualified healthcare professional rather than a diagnosis.";
+
+}
+
+else if(q.includes("change")){
+
+answer=
+"The demo timeline shows prescription information, an HbA1c result, a diagnostic report and a recent AI health summary update.";
+
+}
+
+else if(q.includes("doctor")){
+
+answer=
+"You can discuss the fever information, the HbA1c result, your medicines, symptoms and any questions about follow-up with your healthcare professional.";
+
+}
+
+else if(q.includes("medicine")){
+
+answer=
+"Demo medicines: Paracetamol 500 mg — twice daily, and Multivitamin — once daily. This is fictional demo data.";
+
+}
+
+document.getElementById("aiAnswer").innerHTML=`
+
+<div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-sm fade">
+
+<div class="font-bold text-emerald-800 mb-2">
+<i class="fa-solid fa-brain mr-2"></i>
+MEDORA AI
+</div>
+
+${answer}
+
+</div>
+
+`;
+
+}
+
+
+/* =========================
+   CONSULTATION
+========================= */
+
+function consultationPage(){
+
+return `
+
+<div class="max-w-4xl mx-auto space-y-6">
+
+<div class="bg-rose-50 border border-rose-200 rounded-3xl p-8">
+
+<div class="flex gap-5">
+
+<div class="w-14 h-14 rounded-2xl bg-rose-600 text-white flex items-center justify-center text-xl shrink-0">
+<i class="fa-solid fa-stethoscope"></i>
+</div>
+
+<div>
+
+<span class="text-xs font-bold text-rose-700">
+PROTOTYPE CONSULTATION
+</span>
+
+<h1 class="text-2xl font-extrabold mt-1">
+Doctor Consultation
+</h1>
+
+<p class="text-sm text-slate-700 mt-2">
+Prepare your health information and send a demo consultation request.
+</p>
+
+<button onclick="requestDoctor()"
+class="mt-5 bg-rose-600 hover:bg-rose-700 text-white px-5 py-3 rounded-xl font-bold">
+
+<i class="fa-solid fa-paper-plane mr-2"></i>
+Request Consultation
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<div class="card p-7">
+
+<h2 class="text-xl font-extrabold mb-5">
+Information to Discuss
+</h2>
+
+<div class="space-y-3">
+
+${bullet("Fever-related information in the demo records")}
+
+${bullet("HbA1c result shown in the demo report")}
+
+${bullet("Current medicines and allergies")}
+
+${bullet("Questions about follow-up care")}
+
+</div>
+
+</div>
+
+</div>
+`;
+}
+
+
+function bullet(text){
+
+return `
+<div class="flex gap-3 items-start bg-slate-50 p-4 rounded-xl">
+<i class="fa-solid fa-circle-check text-emerald-600 mt-1"></i>
+<span class="text-sm">${text}</span>
+</div>
+`;
+}
+
+
+/* =========================
+   PROFILE
+========================= */
+
+function profilePage(){
+
+return `
+
+<div class="max-w-4xl mx-auto space-y-6">
+
+<div class="card p-7">
+
+<h1 class="text-3xl font-extrabold">
+Health Profile
+</h1>
+
+<p class="text-sm text-slate-500 mt-1">
+Demo patient profile
+</p>
+
+</div>
+
+
+<div class="card p-7">
+
+<div class="flex items-center gap-5 mb-7">
+
+<div class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl">
+<i class="fa-solid fa-user"></i>
+</div>
+
+<div>
+<h2 class="text-xl font-extrabold">
+${patient.name}
+</h2>
+
+<p class="text-sm text-slate-500">
+Demo Patient
+</p>
+</div>
+
+</div>
+
+
+<div class="grid sm:grid-cols-2 gap-5">
+
+${profileItem("Age",patient.age)}
+
+${profileItem("Gender",patient.gender)}
+
+${profileItem("Blood Group",patient.blood)}
+
+${profileItem("Mock ABHA ID",patient.abha)}
+
+</div>
+
+</div>
+
+
+<div class="card p-7">
+
+<h2 class="font-extrabold text-lg mb-4">
+Allergies
+</h2>
+
+${patient.allergies.map(a=>`
+
+<span class="inline-block bg-rose-50 text-rose-700 border border-rose-200 px-3 py-2 rounded-xl text-sm font-semibold mr-2">
+${a}
+</span>
+
+`).join("")}
+
+</div>
+
+
+<div class="card p-7">
+
+<h2 class="font-extrabold text-lg mb-4">
+Conditions in Demo Data
+</h2>
+
+<div class="flex flex-wrap gap-2">
+
+${patient.conditions.map(c=>`
+
+<span class="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-2 rounded-xl text-sm font-semibold">
+${c}
+</span>
+
+`).join("")}
+
+</div>
+
+</div>
+
+</div>
+`;
+}
+
+
+function profileItem(title,value){
+
+return `
+<div class="bg-slate-50 rounded-xl p-4">
+
+<p class="text-xs text-slate-500 font-bold">
+${title}
+</p>
+
+<p class="font-extrabold mt-1 break-all">
+${value}
+</p>
+
+</div>
+`;
+}
+
+
+/* =========================
+   ABDM
+========================= */
+
+function abdmPage(){
+
+return `
+
+<div class="max-w-4xl mx-auto">
+
+<div class="card p-8">
+
+<div class="inline-flex bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-bold">
+ABDM READY — PROTOTYPE
+</div>
+
+<h1 class="text-3xl font-extrabold mt-5">
+Ayushman Bharat Digital Mission
+</h1>
+
+<p class="text-sm text-slate-600 mt-2">
+MEDORA demonstrates readiness for structured digital health records.
+</p>
+
+
+<div class="bg-slate-900 text-emerald-400 rounded-2xl p-6 mt-7 font-mono text-sm">
+
+<p>
+<strong>Mock ABHA ID:</strong>
+${patient.abha}
+</p>
+
+<p class="text-slate-400 mt-2">
+STATUS: MOCK ID — NOT CONNECTED TO ABDM
+</p>
+
+</div>
+
+
+<div class="grid md:grid-cols-3 gap-4 mt-7">
+
+${abdmCard("fa-shield-halved","Secure Records")}
+
+${abdmCard("fa-database","Structured Data")}
+
+${abdmCard("fa-link","Future Integration")}
+
+</div>
+
+</div>
+
+</div>
+`;
+}
+
+
+function abdmCard(icon,title){
+
+return `
+<div class="bg-slate-50 rounded-2xl p-5 text-center">
+
+<i class="fa-solid ${icon} text-emerald-600 text-xl"></i>
+
+<h3 class="font-bold mt-3">
+${title}
+</h3>
+
+</div>
+`;
+}
+
+
+/* =========================
+   DOCTOR PORTAL
+========================= */
+
+function doctorPortal(){
+
+return `
+
+<div class="fade">
+
+<div class="max-w-7xl mx-auto px-4 py-8 space-y-7">
+
+<div class="hero rounded-3xl p-8 text-white">
+
+<span class="text-xs font-bold text-teal-300">
+PROTOTYPE DOCTOR PORTAL
+</span>
+
+<h1 class="text-3xl font-extrabold mt-2">
+Doctor Workspace
+</h1>
+
+<p class="text-slate-300 text-sm mt-2">
+Review patient-shared health information and prepare for consultations.
+</p>
+
+</div>
+
+
+<div class="grid md:grid-cols-3 gap-5">
+
+${doctorStat("1","Pending Request","fa-inbox")}
+
+${doctorStat("3","Records Available","fa-file-medical")}
+
+${doctorStat("1","Patient","fa-user")}
+
+</div>
+
+
+<div class="card p-7">
+
+<div class="flex justify-between items-center mb-6">
+
+<div>
+<h2 class="text-xl font-extrabold">
+Pending Consultation Requests
+</h2>
+
+<p class="text-xs text-slate-500">
+Patient requests waiting for review
+</p>
+</div>
+
+<span class="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold">
+1 WAITING
+</span>
+
+</div>
+
+
+<div class="bg-slate-50 border rounded-2xl p-6">
+
+<div class="flex flex-col md:flex-row justify-between gap-5">
+
+<div>
+
+<h3 class="text-lg font-extrabold">
+Alex Sharma
+</h3>
+
+<p class="text-xs text-slate-500 mt-1">
+Age 22 • Blood Group B+
+</p>
+
+<p class="text-sm mt-4">
+<strong>Concern:</strong>
+Fever-related information & elevated HbA1c
+</p>
+
+<p class="text-xs text-slate-500 mt-2">
+Records available: 3
+</p>
+
+</div>
+
+
+<button onclick="reviewPatient()"
+class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 rounded-xl font-bold h-fit">
+
+<i class="fa-solid fa-file-medical mr-2"></i>
+Review Health Summary
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<div id="doctorSummary"></div>
+
+</div>
+
+</div>
+`;
+}
+
+
+function doctorStat(number,title,icon){
+
+return `
+<div class="card p-6">
+
+<div class="w-11 h-11 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center">
+<i class="fa-solid ${icon}"></i>
+</div>
+
+<h3 class="text-2xl font-extrabold mt-4">
+${number}
+</h3>
+
+<p class="text-sm text-slate-500">
+${title}
+</p>
+
+</div>
+`;
+}
+
+
+function reviewPatient(){
+
+const box=document.getElementById("doctorSummary");
+
+box.innerHTML=`
+
+<div class="card p-7 border-teal-200 fade">
+
+<div class="flex justify-between items-center mb-6">
+
+<h2 class="text-xl font-extrabold">
+Patient Health Summary
+</h2>
+
+<span class="bg-teal-50 text-teal-700 px-3 py-1 rounded-full text-xs font-bold">
+SHARED BY PATIENT
+</span>
+
+</div>
+
+
+<div class="grid md:grid-cols-2 gap-5">
+
+<div class="bg-slate-50 p-5 rounded-2xl">
+
+<h3 class="font-bold mb-3">
+Patient
+</h3>
+
+<p class="text-sm">
+Alex Sharma, 22 years
+</p>
+
+</div>
+
+
+<div class="bg-slate-50 p-5 rounded-2xl">
+
+<h3 class="font-bold mb-3">
+Key Observation
+</h3>
+
+<p class="text-sm">
+HbA1c: 7.2%
+</p>
+
+</div>
+
+
+<div class="bg-slate-50 p-5 rounded-2xl">
+
+<h3 class="font-bold mb-3">
+Fever Information
+</h3>
+
+<p class="text-sm">
+Body temperature: 101.4°F
+</p>
+
+</div>
+
+
+<div class="bg-slate-50 p-5 rounded-2xl">
+
+<h3 class="font-bold mb-3">
+Current Medicines
+</h3>
+
+<p class="text-sm">
+Paracetamol 500 mg<br>
+Multivitamin
+</p>
+
+</div>
+
+</div>
+
+
+<div class="mt-6 bg-amber-50 border border-amber-200 p-5 rounded-2xl text-sm">
+
+<strong>Clinical review note:</strong>
+This prototype only displays demo information.
+Professional clinical judgment is required for real healthcare decisions.
+
+</div>
+
+</div>
+`;
+
+toast("Patient health summary opened","success");
+
+}
+
+
+/* =========================
+   UPLOAD
+========================= */
+
+function uploadRecord(){
+
+const modal=document.createElement("div");
+
+modal.id="uploadModal";
+
+modal.className=
+"fixed inset-0 z-[90] modal-bg flex items-center justify-center p-4";
+
+modal.innerHTML=`
+
+<div class="bg-white rounded-3xl p-8 max-w-md w-full text-center fade">
+
+<button onclick="document.getElementById('uploadModal').remove()"
+class="float-right text-slate-400">
+<i class="fa-solid fa-xmark"></i>
+</button>
+
+<div class="clear-both"></div>
+
+<div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mt-3">
+<i class="fa-solid fa-cloud-arrow-up"></i>
+</div>
+
+<h2 class="text-2xl font-extrabold mt-5">
+Upload Medical Record
+</h2>
+
+<p class="text-sm text-slate-500 mt-2 mb-6">
+Select a document for this prototype.
+</p>
+
+
+<input type="file"
+accept=".pdf,.png,.jpg,.jpeg"
+class="w-full border border-dashed border-slate-300 rounded-xl p-5 text-sm">
+
+
+<button onclick="simulateUpload()"
+class="w-full mt-5 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-xl font-bold">
+
+<i class="fa-solid fa-wand-magic-sparkles mr-2"></i>
+Analyze Document
+
+</button>
+
+</div>
+`;
+
+document.body.appendChild(modal);
+}
+
+
+function simulateUpload(){
+
+const modal=document.getElementById("uploadModal");
+
+if(modal) modal.remove();
+
+toast(
+"Demo OCR & AI extraction completed successfully!",
+"success"
+);
+
+}
+
+
+/* =========================
+   CONSULTATION REQUEST
+========================= */
+
+function requestDoctor(){
+
+toast(
+"Demo consultation request sent to Dr. Meera Kapoor!",
+"success"
+);
+}
+
+
+/* =========================
+   NAVIGATION
+========================= */
+
+function navigate(page){
+
+currentPage=page;
+
+render();
+
+window.scrollTo({
+top:0,
+behavior:"smooth"
+});
+}
+
+
+function goHome(){
+
+role=null;
+
+localStorage.removeItem("medora_role");
+
+currentPage="dashboard";
+
+render();
+}
+
+
+function logout(){
+
+role=null;
+
+localStorage.removeItem("medora_role");
+
+render();
+
+toast("Logged out successfully","info");
+}
+
+
+/* =========================
+   DEMO
+========================= */
+
+function runDemo(){
+
+toast("Starting MEDORA automated demo...","success");
+
+role="patient";
+
+localStorage.setItem("medora_role","patient");
+
+render();
+
+setTimeout(()=>{
+
+navigate("story");
+
+toast("Step 1: Health Story opened","info");
+
+},1800);
+
+
+setTimeout(()=>{
+
+navigate("consultation");
+
+toast("Step 2: Consultation workflow opened","info");
+
+},3600);
+
+
+setTimeout(()=>{
+
+role="doctor";
+
+localStorage.setItem("medora_role","doctor");
+
+render();
+
+toast("Step 3: Doctor Workspace loaded","success");
+
+},5400);
+
+}
+
+
+/* =========================
+   TOAST
+========================= */
+
+function toast(message,type="info"){
+
+const box=document.getElementById("toastBox");
+
+const el=document.createElement("div");
+
+let bg="bg-slate-900";
+
+if(type==="success") bg="bg-emerald-600";
+if(type==="error") bg="bg-rose-600";
+if(type==="warning") bg="bg-amber-600";
+
+el.className=
+`${bg} text-white px-5 py-3 rounded-xl shadow-xl text-sm font-semibold toast`;
+
+el.innerHTML=`
+
+<span>${message}</span>
+
+<button onclick="this.parentElement.remove()" class="ml-4 opacity-70 hover:opacity-100">
+<i class="fa-solid fa-xmark"></i>
+</button>
+`;
+
+box.appendChild(el);
+
+setTimeout(()=>{
+
+el.style.opacity="0";
+
+setTimeout(()=>el.remove(),300);
+
+},4000);
+
+}
+
+
+/* =========================
+   START APP
+========================= */
+
+render();
+
+</script>
+
+</body>
+</html>
